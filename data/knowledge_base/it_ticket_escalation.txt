@@ -1,0 +1,3 @@
+IT tickets are prioritized by business impact and urgency. A ticket can be escalated when a production-impacting issue, client deliverable, payroll activity, security concern, or executive request is blocked and the normal response window has passed.
+
+To request escalation, update the existing ticket instead of opening a duplicate. Add the business impact, deadline, affected users, screenshots or logs, and manager approval if applicable. The Service Desk lead reviews escalation requests and assigns the correct resolver group.

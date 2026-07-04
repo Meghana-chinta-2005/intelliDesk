@@ -1,0 +1,3 @@
+VPN access is required when employees connect to internal systems from outside the office network. Before raising a ticket, confirm that the internet connection is stable, the VPN client is updated, MFA is working, and the account password has not expired.
+
+If VPN connects but internal apps do not load, capture the VPN gateway name, error message, device hostname, and affected application. Frequent disconnects may be caused by weak Wi-Fi, blocked ports, expired certificates, or endpoint compliance checks.

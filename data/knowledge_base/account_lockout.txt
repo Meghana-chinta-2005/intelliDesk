@@ -1,0 +1,3 @@
+Employees are locked out after five failed sign-in attempts within ten minutes. Wait fifteen minutes for the lockout to clear, then sign in again using your current network password. If the lockout repeats, check whether an old password is saved in Outlook, Teams, mobile mail, VPN, or browser password managers.
+
+If you still cannot sign in, open an IT access ticket with your employee ID, device name, and the approximate time of the failed attempts. The Service Desk can verify whether the lockout is caused by stale credentials, suspicious activity, or an account sync delay.

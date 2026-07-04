@@ -1,0 +1,3 @@
+Employees should apply for planned leave in the HR portal at least five working days before the leave start date. The request must include leave type, dates, backup contact, and any handover notes needed by the team. Manager approval is required before the leave is finalized.
+
+Sick leave should be submitted as soon as practical. Medical documentation may be requested for extended illness or repeated absences. Public holidays and company-declared shutdown days are not deducted from the employee's leave balance.

@@ -1,0 +1,3 @@
+Employees should keep their HR profile updated with current address, emergency contact, phone number, marital status, and bank details. Most profile changes can be submitted directly in the HR portal and may require document upload or HR verification.
+
+Bank detail changes should be submitted before the payroll cutoff date to apply in the current cycle. Address changes may affect tax, benefits, and statutory records, so employees should update them promptly after relocation.

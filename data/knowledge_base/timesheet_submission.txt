@@ -1,0 +1,3 @@
+Timesheets must be submitted every Friday before the local cutoff time unless a project has a different approved schedule. Employees should record hours against the correct project code, task category, and leave code so billing and utilization reports remain accurate.
+
+If a timesheet is rejected, correct the comments or project allocation and resubmit it promptly. Missed submissions may affect project reporting and payroll processing for contractors. Managers can reopen a locked period only with PMO approval.

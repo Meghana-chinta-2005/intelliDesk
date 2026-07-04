@@ -1,0 +1,3 @@
+Laptop replacement is available for devices that are out of warranty, repeatedly failing, physically damaged, or unable to meet project software requirements. Employees should first open an IT hardware ticket with the asset tag, serial number, issue description, and troubleshooting already attempted.
+
+Approved replacements depend on stock availability and manager confirmation. Before exchanging the device, back up work files to OneDrive or the approved project repository. IT will collect the old laptop, verify asset return, and issue the replacement device.

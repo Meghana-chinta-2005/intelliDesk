@@ -1,0 +1,3 @@
+Approved software should be installed from the company software center or requested through the IT service catalog. Employees must include the tool name, version, business justification, project code, and licensing requirement when requesting software that is not pre-approved.
+
+Administrative rights are not granted by default. If elevated access is required, IT may provide temporary installation support or a managed package. Unlicensed software, personal cloud storage tools, and unsupported remote access utilities are not permitted on company devices.

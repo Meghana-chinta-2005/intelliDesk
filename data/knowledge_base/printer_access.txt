@@ -1,0 +1,3 @@
+Office printers require employees to sign in with their corporate badge or network credentials. If a printer is not visible, confirm that the device is connected to the office network or VPN and install the standard print queue from the software center.
+
+For printer errors, include the printer name, floor location, error message, and whether other users are affected. Paper jams and toner issues should be reported to facilities if they are physical supply problems, while driver and queue problems should be routed to IT.

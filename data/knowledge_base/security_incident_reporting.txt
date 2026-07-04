@@ -1,0 +1,3 @@
+Employees must report suspected phishing, malware, lost devices, unauthorized access, data leakage, or accidental sharing of confidential information immediately. Use the security incident portal or the phishing report button in Outlook for suspicious emails.
+
+Do not forward suspicious attachments to colleagues. Disconnect a potentially infected device from the network, keep it powered on if possible, and wait for Security Operations guidance. Fast reporting helps contain risk and does not automatically imply disciplinary action.

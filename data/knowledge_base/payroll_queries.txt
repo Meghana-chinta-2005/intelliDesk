@@ -1,0 +1,3 @@
+Payroll questions should be raised through the HR payroll helpdesk with the payslip month, employee ID, and a short description of the issue. Common payroll queries include missing allowances, tax declaration updates, bank account changes, salary hold questions, and reimbursement payment status.
+
+Payroll corrections are handled according to the payroll calendar. If a correction misses the current cutoff, it may appear in the next cycle. Employees should not share full bank account numbers or tax IDs in email; use the secure HR portal attachment option.

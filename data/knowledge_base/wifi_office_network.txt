@@ -1,0 +1,3 @@
+Employees in the office should connect to the corporate Wi-Fi network using their network credentials. Guest Wi-Fi is intended for visitors and does not provide access to internal applications, printers, shared drives, or development environments.
+
+If corporate Wi-Fi fails, forget the network profile, reconnect with the current password, and confirm that the device date and time are correct. Persistent authentication failures should be reported to IT with the office location, floor, device name, and screenshots.
