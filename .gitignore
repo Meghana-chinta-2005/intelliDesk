@@ -1,6 +1,45 @@
-venv/
+# Python
 __pycache__/
-.pytest_cache/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+*.whl
+
+# Virtual environments
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# Environment variables (secrets)
 .env
+
+# FAISS index and chunk metadata
 faiss_index.bin
 chunks.pkl
+faiss_index/
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Distribution
+*.spec

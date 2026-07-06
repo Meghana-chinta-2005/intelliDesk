@@ -1,0 +1,1 @@
+To connect to the corporate Wi-Fi network 'CorpNet', select the SSID on your device and log in using your active directory credentials. For guests, connect to 'CorpGuest' and request a temporary access code from the reception desk. Accessing malicious or unauthorized websites on the corporate network is strictly prohibited.

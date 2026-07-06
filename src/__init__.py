@@ -1,1 +1,1 @@
-"""IntelliDesk RAG package."""
+# src package

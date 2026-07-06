@@ -1,3 +1,1 @@
-Laptop replacement is available for devices that are out of warranty, repeatedly failing, physically damaged, or unable to meet project software requirements. Employees should first open an IT hardware ticket with the asset tag, serial number, issue description, and troubleshooting already attempted.
-
-Approved replacements depend on stock availability and manager confirmation. Before exchanging the device, back up work files to OneDrive or the approved project repository. IT will collect the old laptop, verify asset return, and issue the replacement device.
+If your work laptop is damaged or is more than 3 years old, you are eligible for a replacement. Open an IT hardware request on the service desk portal. Hardware upgrades require approval from your department head. Once approved, IT will issue a standard-issue Lenovo ThinkPad or MacBook Pro within 5 business days.
