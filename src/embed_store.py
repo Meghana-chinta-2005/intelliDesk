@@ -46,8 +46,8 @@ def build_and_save(chunks: List[Dict]) -> None:
     with open(CHUNKS_PATH, "wb") as f:
         pickle.dump(chunks, f)
 
-    print(f"Saved FAISS index → {INDEX_PATH}")
-    print(f"Saved chunk metadata → {CHUNKS_PATH}")
+    print(f"Saved FAISS index -> {INDEX_PATH}")
+    print(f"Saved chunk metadata -> {CHUNKS_PATH}")
 
 
 def load_store():
