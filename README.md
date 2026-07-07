@@ -1,13 +1,14 @@
-# 🧠 IntelliDesk — RAG-Based AI Support Ticket Resolver
+# 🧠 IntelliDesk — Production RAG-Based AI Support Assistant
 
-IntelliDesk is an internal AI support assistant that answers employee questions
-by retrieving relevant documents from a company knowledge base and generating
-a grounded, source-cited answer using an LLM. It never halluccinates — if the
-knowledge base doesn't contain an answer, it says so explicitly.
+IntelliDesk is an enterprise-grade internal AI support assistant that answers employee questions by retrieving relevant documents from a company knowledge base and generating grounded, source-cited answers using an LLM. 
+
+By employing a strict semantic distance threshold guard, IntelliDesk prevents LLM hallucinations. If the knowledge base does not contain the answer, the assistant flags it explicitly rather than generating false information.
 
 ---
 
-## Architecture
+## 🏗️ Clean System Architecture
+
+IntelliDesk is built with a production-ready clean layered architecture under `src/`:
 
 ```
 Employee Question
@@ -15,26 +16,28 @@ Employee Question
       ▼
 ┌─────────────┐    POST /ask     ┌──────────────────────────────────────────────┐
 │  Streamlit  │ ──────────────▶  │              FastAPI Backend                 │
-│   (app.py)  │ ◀──────────────  │                (main.py)                     │
+│   (app.py)  │ ◀──────────────  │            (main.py -> src/api/)             │
 └─────────────┘    JSON answer   └──────────────────┬───────────────────────────┘
                                                     │
                                                     ▼
                                      ┌──────────────────────────┐
-                                     │     src/pipeline.py      │
+                                     │  src/services/pipeline   │
                                      │  (orchestrates RAG flow) │
                                      └──────┬───────────────────┘
                                             │
                      ┌──────────────────────┼────────────────────────┐
                      ▼                      ▼                        ▼
            ┌──────────────────┐  ┌──────────────────┐   ┌───────────────────┐
-           │  src/ingest.py   │  │ src/retrieve.py   │   │  src/generate.py  │
-           │  Load & chunk    │  │ FAISS vector      │   │  Groq LLM         │
-           │  .txt documents  │  │ similarity search │   │  (grounded only)  │
+           │ src/vector_store/│  │ src/vector_store/│   │   src/services/   │
+           │    ingest.py     │  │   retrieve.py    │   │    generate.py    │
+           │  Load & chunk    │  │ FAISS vector     │   │  Groq LLM         │
+           │  .txt documents  │  │ similarity search│   │  (grounded only)  │
            └──────────────────┘  └──────────────────┘   └───────────────────┘
                      │                    ▲
                      ▼                    │
            ┌──────────────────┐           │
-           │ src/embed_store  │ ──────────┘
+           │ src/vector_store/│ ──────────┘
+           │  embed_store.py  │
            │ sentence-xformers│
            │ FAISS IndexFlatL2│
            └──────────────────┘
@@ -45,154 +48,137 @@ Employee Question
            └──────────────────┘
 ```
 
-### Key Design Decisions
-
-| Concern | Choice | Reason |
-|---|---|---|
-| Embeddings | all-MiniLM-L6-v2 | Small, fast, high quality for English |
-| Vector Store | FAISS IndexFlatL2 | Simple, no server, great for <100k docs |
-| LLM | Groq llama-3.1-8b-instant | Very fast inference, free tier available |
-| Hallucination Guard | L2 distance threshold (0.8) | Rejects queries with no good match |
-| Chunk size | ~200 words | Balances context richness vs. precision |
+### Modular Repository Structure
+```
+IntelliDesk/
+├── .github/workflows/ci.yml  # Automated CI (formatting, linting, testing)
+├── data/knowledge_base/      # Support documents (.txt)
+├── src/
+│   ├── api/                  # FastAPI routers and routes
+│   ├── config/               # Settings & environment variables validation
+│   ├── models/               # Pydantic request/response models
+│   ├── services/             # LLM orchestration and generation pipeline
+│   ├── utils/                # Logging setup
+│   └── vector_store/         # Document ingestion, indexing, and retrieval
+├── tests/                    # Unit & integration tests
+├── .env.example              # Configuration template
+├── .gitignore                # Git ignore files
+├── app.py                    # Streamlit UI (Frontend)
+├── Dockerfile                # Production Docker multi-stage container
+├── main.py                   # FastAPI backend launcher (Entrypoint)
+└── README.md                 # System documentation
+```
 
 ---
 
-## Setup
+## ⚙️ Configuration & Environment Variables
 
-### Prerequisites
-- Python 3.11+
-- A Groq API key ([get one free](https://console.groq.com))
+IntelliDesk uses a central configuration system (`src/config/config.py`) powered by Pydantic models. You can configure the system by creating a `.env` file in the root directory.
 
-### 1. Clone the repo
-```bash
-git clone https://github.com/yourusername/intellidesk-rag.git
-cd intellidesk-rag
-```
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `GROQ_API_KEY` | **[Required]** API Key for Groq Cloud LLM | *None* |
+| `API_HOST` | FastAPI host interface address | `0.0.0.0` |
+| `API_PORT` | FastAPI network port | `8000` |
+| `LLM_MODEL` | Groq LLM model name | `llama-3.1-8b-instant` |
+| `LLM_TEMPERATURE` | Generation temperature | `0.2` |
+| `LLM_MAX_TOKENS` | Maximum tokens for response | `512` |
+| `EMBEDDING_MODEL_NAME`| Sentence Transformer model name | `all-MiniLM-L6-v2` |
+| `CHUNK_SIZE_WORDS` | Word limit per text chunk | `200` |
+| `TOP_K` | Number of context chunks to retrieve | `3` |
+| `DISTANCE_THRESHOLD` | FAISS L2 similarity distance cutoff limit | `0.8` |
+| `LOG_LEVEL` | Level of debug log granularity | `INFO` |
+| `LOG_FILE` | Log file path | `app.log` |
+| `API_URL` | Streamlit target API address | `http://localhost:8000` |
 
-### 2. Create a virtual environment
+---
+
+## 🚀 Installation & Local Run
+
+### 1. Set Up Environment
+Create a virtual environment and install dependencies:
 ```bash
 python -m venv venv
-# Windows
+# On Windows
 venv\Scripts\activate
-# macOS / Linux
+# On macOS / Linux
 source venv/bin/activate
-```
 
-### 3. Install dependencies
-```bash
 pip install -r requirements.txt
 ```
 
-### 4. Configure environment variables
+### 2. Configure Credentials
+Copy `.env.example` to `.env` and fill in your Groq API key:
 ```bash
 cp .env.example .env
-# Edit .env and add your GROQ_API_KEY
 ```
 
-### 5. Build the knowledge base index
+### 3. Build the FAISS Vector Store Index
+Run the ingestion pipeline to parse documents and compile the semantic index:
 ```bash
-python -m src.embed_store
+python -m src.vector_store.embed_store
 ```
-This reads all `.txt` files in `data/knowledge_base/`, embeds them, and saves
-`faiss_index.bin` and `chunks.pkl` to the project root.
+This reads all text files in `data/knowledge_base/`, creates embeddings, and outputs:
+- `faiss_index.bin` (FAISS database)
+- `chunks.pkl` (chunk metadata)
 
----
-
-## Running Locally
-
-### Start the FastAPI backend
+### 4. Run the API Server
+Start the FastAPI server:
 ```bash
-uvicorn main:app --reload --port 8000
+python main.py
 ```
 
-### Start the Streamlit frontend (in a second terminal)
+### 5. Run the Streamlit Interface
+In a separate terminal, launch the Streamlit frontend:
 ```bash
 streamlit run app.py
 ```
-
-Open `http://localhost:8501` in your browser.
-
----
-
-## API Reference
-
-### `GET /health`
-```bash
-curl http://localhost:8000/health
-# {"status": "ok", "service": "IntelliDesk"}
-```
-
-### `POST /ask`
-```bash
-curl -X POST http://localhost:8000/ask \
-  -H "Content-Type: application/json" \
-  -d '{"question": "How do I reset my VPN password?"}'
-```
-Response:
-```json
-{
-  "question": "How do I reset my VPN password?",
-  "answer": "To reset your VPN password, visit the IT portal... Sources: vpn_access.txt"
-}
-```
+Access the UI at `http://localhost:8501`.
 
 ---
 
-## Running Tests
+## 🧪 Quality Control & Testing
+
+### Running Tests
+Execute the pytest suite (covers ingestion, semantic retrieval, generation mocking, and API routes):
 ```bash
 pytest tests/ -v
 ```
 
+### Linting and Formatting
+IntelliDesk uses `Ruff` to enforce strict formatting and linting.
+```bash
+# Run lint check
+ruff check .
+
+# Run format check
+ruff format --check .
+
+# Auto-fix lint problems and format
+ruff check --fix . && ruff format .
+```
+
 ---
 
-## Docker
+## 🛠️ GitHub Actions CI Pipeline
 
-### Build the image
+On every push or pull request to the `main` branch, the CI pipeline (`.github/workflows/ci.yml`) executes:
+1. **Ruff Linter Check** (`ruff check .`)
+2. **Ruff Formatter Check** (`ruff format --check .`)
+3. **FAISS Index Build** (`python -m src.vector_store.embed_store`)
+4. **Pytest Run** (`pytest tests/ -v`)
+
+---
+
+## 🐳 Docker Deployment
+
+### 1. Build Docker Image
 ```bash
 docker build -t intellidesk:latest .
 ```
 
-### Run the container
+### 2. Run Docker Container
 ```bash
 docker run -p 8000:8000 --env-file .env intellidesk:latest
 ```
-
----
-
-## Project Structure
-
-```
-IntelliDesk/
-├── data/
-│   └── knowledge_base/       # Source .txt support documents (18-20 files)
-├── src/
-│   ├── ingest.py             # Load & chunk documents
-│   ├── embed_store.py        # Embed + build/load FAISS index
-│   ├── retrieve.py           # Vector similarity search with threshold guard
-│   ├── generate.py           # Groq LLM call with grounding prompt
-│   └── pipeline.py           # End-to-end RAG orchestrator
-├── tests/
-│   ├── test_ingest.py        # Ingestion unit tests
-│   ├── test_api.py           # FastAPI endpoint tests
-│   └── test_retrieval.py     # Retrieval accuracy evaluation
-├── .github/
-│   └── workflows/ci.yml      # GitHub Actions CI
-├── main.py                   # FastAPI app
-├── app.py                    # Streamlit UI
-├── requirements.txt
-├── Dockerfile
-├── .env.example
-└── README.md
-```
-
----
-
-## Contributing
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/my-change`)
-3. Commit your changes (`git commit -m 'feat: describe change'`)
-4. Push and open a Pull Request
-
----
-
-*Built with ❤️ using FastAPI · FAISS · sentence-transformers · Groq*
+The FastAPI documentation will be available at `http://localhost:8000/docs`.

@@ -1,12 +1,6 @@
-"""
-tests/test_retrieve.py
-Unit tests for the retrieval engine.
-"""
-
-import pytest
 from unittest.mock import MagicMock
 import numpy as np
-from src.retrieve import retrieve
+from src.vector_store.retrieve import retrieve
 
 
 def test_retrieve_under_threshold():
@@ -50,7 +44,10 @@ def test_retrieve_handles_faiss_out_of_bounds():
     model.encode.return_value = np.zeros((1, 384))
 
     index = MagicMock()
-    index.search.return_value = (np.array([[0.3, 0.4]]), np.array([[0, -1]]))
+    index.search.return_value = (
+        np.array([[0.3, 0.4]]),
+        np.array([[0, -1]]),
+    )
 
     chunks = [{"text": "Chunk 1 text", "source": "doc1.txt", "chunk_id": 0}]
 

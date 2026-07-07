@@ -1,15 +1,10 @@
-"""
-tests/test_generate.py
-Unit tests for the LLM generation layer.
-"""
-
 import pytest
 import os
 from unittest.mock import patch, MagicMock
-from src.generate import generate
+from src.services.generate import generate
 
 
-@patch("src.generate.Groq")
+@patch("src.services.generate.Groq")
 def test_generate_with_context(mock_groq_class):
     """generate should call the Groq client with formatted context and return the response."""
     # Setup mock Groq client
@@ -23,10 +18,20 @@ def test_generate_with_context(mock_groq_class):
     mock_completion.choices = [MagicMock(message=mock_message)]
     mock_client.chat.completions.create.return_value = mock_completion
 
-    chunks = [{"text": "Company wifi password is 123.", "source": "wifi.txt", "chunk_id": 0}]
+    chunks = [
+        {
+            "text": "Company wifi password is 123.",
+            "source": "wifi.txt",
+            "chunk_id": 0,
+        }
+    ]
 
     with patch.dict(os.environ, {"GROQ_API_KEY": "fake_api_key"}):
-        answer = generate("What is the wifi password?", chunks)
+        # We need to temporarily mock settings.GROQ_API_KEY so it doesn't fail validation
+        from src.config.config import settings
+
+        with patch.object(settings, "GROQ_API_KEY", "fake_api_key"):
+            answer = generate("What is the wifi password?", chunks)
 
     assert answer == "Mocked grounded answer. Sources: doc1.txt"
     mock_client.chat.completions.create.assert_called_once()
@@ -36,7 +41,7 @@ def test_generate_with_context(mock_groq_class):
     assert len(call_kwargs["messages"]) == 2
 
 
-@patch("src.generate.Groq")
+@patch("src.services.generate.Groq")
 def test_generate_without_context(mock_groq_class):
     """generate should handle empty context chunks and query the LLM appropriately."""
     mock_client = MagicMock()
@@ -44,12 +49,17 @@ def test_generate_without_context(mock_groq_class):
 
     mock_completion = MagicMock()
     mock_message = MagicMock()
-    mock_message.content = "I could not find relevant information in the knowledge base."
+    mock_message.content = (
+        "I could not find relevant information in the knowledge base."
+    )
     mock_completion.choices = [MagicMock(message=mock_message)]
     mock_client.chat.completions.create.return_value = mock_completion
 
     with patch.dict(os.environ, {"GROQ_API_KEY": "fake_api_key"}):
-        answer = generate("Unknown query", [])
+        from src.config.config import settings
+
+        with patch.object(settings, "GROQ_API_KEY", "fake_api_key"):
+            answer = generate("Unknown query", [])
 
     assert answer == "I could not find relevant information in the knowledge base."
     mock_client.chat.completions.create.assert_called_once()
@@ -57,10 +67,9 @@ def test_generate_without_context(mock_groq_class):
 
 def test_generate_raises_environment_error_when_no_api_key():
     """generate should raise EnvironmentError if GROQ_API_KEY is not configured."""
-    with patch.dict(os.environ, {}, clear=True):
-        # Temporarily clear os.environ's GROQ_API_KEY if it exists
-        if "GROQ_API_KEY" in os.environ:
-            del os.environ["GROQ_API_KEY"]
+    from src.config.config import settings
+
+    with patch.object(settings, "GROQ_API_KEY", ""):
         with pytest.raises(EnvironmentError) as exc_info:
             generate("test question", [])
         assert "GROQ_API_KEY environment variable not set" in str(exc_info.value)

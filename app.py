@@ -5,17 +5,16 @@ Single-page UI that calls the FastAPI /ask endpoint and displays the result.
 
 import streamlit as st
 import requests
+from src.config.config import settings
 
-API_URL = "http://localhost:8000"
-
-# ── Page configuration ────────────────────────────────────────────────────────
+# --- Page configuration ---
 st.set_page_config(
     page_title="IntelliDesk | AI Support Assistant",
     page_icon="🧠",
     layout="centered",
 )
 
-# ── Styles ────────────────────────────────────────────────────────────────────
+# --- Styles ---
 st.markdown(
     """
     <style>
@@ -40,7 +39,7 @@ st.markdown(
 )
 st.divider()
 
-# ── Input ─────────────────────────────────────────────────────────────────────
+# --- Input ---
 question = st.text_area(
     "Your question",
     placeholder="e.g. How do I reset my VPN password?",
@@ -51,10 +50,10 @@ if st.button("🔍 Get Answer", use_container_width=True):
     if not question.strip():
         st.warning("Please enter a question before submitting.")
     else:
-        with st.spinner("Searching knowledge base and generating answer…"):
+        with st.spinner("Searching knowledge base and generating answer..."):
             try:
                 response = requests.post(
-                    f"{API_URL}/ask",
+                    f"{settings.API_URL}/ask",
                     json={"question": question},
                     timeout=60,
                 )
@@ -67,13 +66,20 @@ if st.button("🔍 Get Answer", use_container_width=True):
                 )
             except requests.exceptions.ConnectionError:
                 st.error(
-                    "❌ Could not connect to the IntelliDesk API. "
-                    "Make sure the FastAPI server is running on port 8000."
+                    f"❌ Could not connect to the IntelliDesk API at {settings.API_URL}. "
+                    "Make sure the FastAPI server is running."
                 )
             except requests.exceptions.HTTPError as exc:
-                st.error(f"API error: {exc.response.status_code} — {exc.response.text}")
+                status_code = exc.response.status_code
+                try:
+                    error_detail = exc.response.json().get("detail", exc.response.text)
+                except Exception:
+                    error_detail = exc.response.text
+                st.error(f"API error: {status_code} — {error_detail}")
             except Exception as exc:
                 st.error(f"Unexpected error: {exc}")
 
 st.divider()
-st.caption("IntelliDesk v1.0 · Powered by FAISS + Groq · Answers grounded in company knowledge base only")
+st.caption(
+    "IntelliDesk v1.0 · Powered by FAISS + Groq · Answers grounded in company knowledge base only"
+)

@@ -1,12 +1,4 @@
-"""
-tests/test_ingest.py
-Unit tests for the ingestion and chunking module.
-(Full tests will be added in Phase 10.)
-"""
-
-import pytest
-from pathlib import Path
-from src.ingest import chunk_text, load_documents, ingest
+from src.vector_store.ingest import chunk_text, load_documents, ingest
 
 
 def test_chunk_text_basic():

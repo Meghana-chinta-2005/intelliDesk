@@ -1,12 +1,6 @@
-"""
-tests/test_retrieval.py
-Retrieval accuracy evaluation suite.
-Measures retrieval accuracy percentage for a set of reference queries.
-"""
-
 import pytest
-from src.embed_store import load_store
-from src.retrieve import retrieve
+from src.vector_store.embed_store import load_store
+from src.vector_store.retrieve import retrieve
 
 
 def test_retrieval_accuracy():
@@ -17,7 +11,7 @@ def test_retrieval_accuracy():
     except FileNotFoundError:
         pytest.fail(
             "FAISS index or chunks metadata not found. "
-            "Please run `python -m src.embed_store` to build the store first."
+            "Please run `python -m src.vector_store.embed_store` to build the store first."
         )
 
     # 17 test cases representing the knowledge base contents
@@ -95,7 +89,9 @@ def test_retrieval_accuracy():
     correct = 0
     for case in test_cases:
         # We query the retriever with the test case query
-        retrieved = retrieve(case["query"], index, chunks, model, top_k=3, threshold=1.2)
+        retrieved = retrieve(
+            case["query"], index, chunks, model, top_k=3, threshold=1.2
+        )
         sources = {r["source"] for r in retrieved}
         if case["expected_source"] in sources:
             correct += 1

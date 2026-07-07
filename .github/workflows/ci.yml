@@ -1,4 +1,4 @@
-name: IntelliDesk CI
+name: "IntelliDesk CI"
 
 on:
   push:
@@ -30,8 +30,14 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Run Ruff Lint check
+        run: ruff check .
+
+      - name: Run Ruff Format check
+        run: ruff format --check .
+
       - name: Build FAISS index
-        run: python -m src.embed_store
+        run: python -m src.vector_store.embed_store
 
       - name: Run pytest
         env:
