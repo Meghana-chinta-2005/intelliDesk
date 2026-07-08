@@ -1,59 +1,66 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Tuple, Any
+from sqlalchemy.orm import Session
 
-from src.vector_store.embed_store import load_store
+from src.models.db_models import Message
 from src.vector_store.retrieve import retrieve
 from src.services.generate import generate
 
 logger = logging.getLogger(__name__)
 
-# --- Singleton: load once, reuse across all API requests ---
-_index = None
-_chunks: List[Dict] = []
-_model = None
+
+def run_pipeline(
+    db: Session,
+    user_id: int,
+    conversation_id: int,
+    question: str
+) -> Tuple[str, List[Dict[str, Any]]]:
+    """
+    Orchestrate the multi-tenant RAG process:
+    1. Load recent conversation history context from PostgreSQL.
+    2. Retrieve semantically matching document chunks from ChromaDB (isolated to user_id).
+    3. Invoke Groq LLM (Llama 3.1) to generate a grounded, cited answer.
+    
+    Returns:
+        (answer_text, retrieved_chunks_metadata)
+    """
+    logger.info(f"Pipeline: Running for user_id={user_id}, conv_id={conversation_id}, query={question!r}")
+    
+    try:
+        # 1. Retrieve last 8 messages of conversation history to inject as context
+        history_msgs = (
+            db.query(Message)
+            .filter(Message.conversation_id == conversation_id)
+            .order_by(Message.created_at.asc())
+            .all()
+        )
+        
+        # Format for Groq system structure
+        history = []
+        for msg in history_msgs[-8:]:  # Take the last 8 messages (4 turns) to stay within safe token limits
+            role = "user" if msg.sender == "user" else "assistant"
+            history.append({"role": role, "content": msg.text})
+            
+        logger.info(f"Pipeline: Injected {len(history)} messages from conversation history.")
+
+        # 2. Perform metadata-isolated similarity search
+        relevant_chunks = retrieve(user_id=user_id, query=question)
+        logger.info(f"Pipeline: Retrieved {len(relevant_chunks)} chunks below similarity cutoff.")
+
+        # 3. Request LLM completion
+        answer = generate(query=question, chunks=relevant_chunks, history=history)
+        
+        return answer, relevant_chunks
+
+    except Exception as exc:
+        logger.error(
+            f"Pipeline: Execution failed for user_id={user_id}, query={question!r}: {exc}",
+            exc_info=True
+        )
+        raise
 
 
 def _ensure_loaded():
-    """Lazy-load the FAISS index and embedding model if not loaded yet."""
-    global _index, _chunks, _model
-    if _index is None:
-        logger.info(
-            "First request: Initializing FAISS store and sentence-transformer model..."
-        )
-        try:
-            _index, _chunks, _model = load_store()
-            logger.info(
-                f"FAISS store successfully loaded with {_index.ntotal} vectors."
-            )
-        except Exception as exc:
-            logger.critical(
-                f"Failed to initialize core RAG resources: {exc}", exc_info=True
-            )
-            raise
+    """Dummy loader function required for backwards compatibility in baseline testing."""
+    pass
 
-
-def run_pipeline(question: str) -> str:
-    """
-    Full RAG pipeline execution for a single employee question.
-    Returns the LLM-generated grounded answer string.
-    """
-    logger.info(f"Running pipeline for question: {question!r}")
-    try:
-        # Step 0: Ensure FAISS index & models are loaded
-        _ensure_loaded()
-
-        # Step 1: Retrieve context chunks
-        relevant_chunks = retrieve(question, _index, _chunks, _model)
-        logger.info(
-            f"Retrieved {len(relevant_chunks)} context chunk(s) below distance threshold."
-        )
-
-        # Step 2: Generate response using LLM
-        answer = generate(question, relevant_chunks)
-        return answer
-    except Exception as exc:
-        logger.error(
-            f"RAG pipeline execution failed for question {question!r}: {exc}",
-            exc_info=True,
-        )
-        raise

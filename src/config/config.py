@@ -30,18 +30,48 @@ class Settings(BaseModel):
             os.getenv("KNOWLEDGE_BASE_DIR", str(ROOT_DIR / "data" / "knowledge_base"))
         )
     )
-    CHUNK_SIZE_WORDS: int = Field(default=int(os.getenv("CHUNK_SIZE_WORDS", "200")))
-    TOP_K: int = Field(default=int(os.getenv("TOP_K", "3")))
+    # Character-based sliding window parameters
+    CHUNK_SIZE_CHAR: int = Field(default=int(os.getenv("CHUNK_SIZE_CHAR", "800")))
+    CHUNK_OVERLAP_CHAR: int = Field(default=int(os.getenv("CHUNK_OVERLAP_CHAR", "100")))
+    TOP_K: int = Field(default=int(os.getenv("TOP_K", "5")))
     DISTANCE_THRESHOLD: float = Field(
         default=float(os.getenv("DISTANCE_THRESHOLD", "0.8"))
     )
 
-    # Storage Paths
-    INDEX_PATH: Path = Field(
-        default=Path(os.getenv("INDEX_PATH", str(ROOT_DIR / "faiss_index.bin")))
+    # ChromaDB Configurations
+    CHROMADB_DIR: Path = Field(
+        default=Path(os.getenv("CHROMADB_DIR", str(ROOT_DIR / "chroma_db")))
     )
-    CHUNKS_PATH: Path = Field(
-        default=Path(os.getenv("CHUNKS_PATH", str(ROOT_DIR / "chunks.pkl")))
+    CHROMA_COLLECTION_NAME: str = Field(
+        default=os.getenv("CHROMA_COLLECTION_NAME", "intellidesk_documents")
+    )
+
+    # PostgreSQL Configurations
+    POSTGRES_USER: str = Field(default=os.getenv("POSTGRES_USER", "postgres"))
+    POSTGRES_PASSWORD: str = Field(default=os.getenv("POSTGRES_PASSWORD", "postgres"))
+    POSTGRES_HOST: str = Field(default=os.getenv("POSTGRES_HOST", "localhost"))
+    POSTGRES_PORT: str = Field(default=os.getenv("POSTGRES_PORT", "5432"))
+    POSTGRES_DB: str = Field(default=os.getenv("POSTGRES_DB", "intellidesk"))
+
+    @property
+    def DATABASE_URL(self) -> str:
+        url = os.getenv("DATABASE_URL")
+        if url:
+            return url
+        return f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
+
+    # JWT Authentication Configurations
+    JWT_SECRET_KEY: str = Field(
+        default=os.getenv("JWT_SECRET_KEY", "b3c7d6c6e7a2b979435b546377e8a9f02c61e27a6f23e4d9c7921a8d052b6510")
+    )
+    JWT_ALGORITHM: str = Field(default=os.getenv("JWT_ALGORITHM", "HS256"))
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(
+        default=int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "120"))
+    )
+
+    # Rate Limiting
+    RATE_LIMIT_ASK_PER_MIN: int = Field(
+        default=int(os.getenv("RATE_LIMIT_ASK_PER_MIN", "30"))
     )
 
     # Logging
@@ -49,7 +79,15 @@ class Settings(BaseModel):
     LOG_FILE: str = Field(default=os.getenv("LOG_FILE", "app.log"))
 
     # Frontend / Connection settings
-    API_URL: str = Field(default=os.getenv("API_URL", "http://localhost:8000"))
+    API_URL: str = Field(default=os.getenv("API_URL", "http://localhost:3000"))
+
+    # File validation constraints
+    ALLOWED_EXTENSIONS: list = Field(default=[".pdf", ".docx", ".xlsx", ".txt"])
+    MAX_FILE_SIZE_MB: int = Field(default=int(os.getenv("MAX_FILE_SIZE_MB", "10")))
+
+    # Default seeding credentials
+    DEFAULT_ADMIN_USERNAME: str = Field(default=os.getenv("DEFAULT_ADMIN_USERNAME", "admin"))
+    DEFAULT_ADMIN_PASSWORD: str = Field(default=os.getenv("DEFAULT_ADMIN_PASSWORD", "admin123"))
 
 
 settings = Settings()

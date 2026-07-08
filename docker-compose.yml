@@ -1,0 +1,63 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: intellidesk_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: intellidesk
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d intellidesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: intellidesk_backend
+    restart: always
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/intellidesk
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - LLM_MODEL=llama-3.1-8b-instant
+      - CHROMADB_DIR=/app/chroma_db
+      - ACCESS_TOKEN_EXPIRE_MINUTES=120
+      - LOG_LEVEL=INFO
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/app/chroma_db
+      - upload_data:/app/data/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    # Initialize DB tables and seed the default admin account before booting the main application
+    entrypoint: >
+      sh -c "python -m src.utils.initialize_db && uvicorn main:app --host 0.0.0.0 --port 8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: intellidesk_frontend
+    restart: always
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8000
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  chroma_data:
+  upload_data:

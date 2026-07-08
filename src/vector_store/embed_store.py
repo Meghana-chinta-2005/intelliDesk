@@ -1,126 +1,133 @@
 import logging
-import pickle
-from pathlib import Path
-from typing import List, Dict
+from typing import List, Dict, Any
 
-# pyrefly: ignore [missing-import]
-import faiss
-import numpy as np
-
-# pyrefly: ignore [missing-import]
+import chromadb
 from sentence_transformers import SentenceTransformer
 
-from src.config.config import settings
+from src.config.config import settings, ROOT_DIR
 
 logger = logging.getLogger(__name__)
 
-
-def get_embeddings(texts: List[str], model: SentenceTransformer) -> np.ndarray:
-    """Return L2-normalised embeddings for a list of text strings."""
-    try:
-        embeddings = model.encode(texts, show_progress_bar=False, convert_to_numpy=True)
-        faiss.normalize_L2(embeddings)
-        return embeddings
-    except Exception as exc:
-        logger.error(
-            f"Error generating embeddings for {len(texts)} texts: {exc}",
-            exc_info=True,
-        )
-        raise
+# Singleton wrapper for embedding model to avoid loading it repeatedly
+_embedding_model = None
 
 
-def build_and_save(
-    chunks: List[Dict],
-    index_path: Path = settings.INDEX_PATH,
-    chunks_path: Path = settings.CHUNKS_PATH,
-) -> None:
+def get_embedding_model() -> SentenceTransformer:
+    """Lazy-load the SentenceTransformer model in a thread-safe manner."""
+    global _embedding_model
+    if _embedding_model is None:
+        logger.info(f"Loading SentenceTransformer model: {settings.EMBEDDING_MODEL_NAME}...")
+        try:
+            _embedding_model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
+        except Exception as e:
+            logger.critical(f"Failed to load embedding model: {e}", exc_info=True)
+            raise
+    return _embedding_model
+
+
+def get_chroma_client() -> chromadb.PersistentClient:
+    """Returns a thread-safe persistent ChromaDB client."""
+    db_path = settings.CHROMADB_DIR
+    db_path.mkdir(parents=True, exist_ok=True)
+    return chromadb.PersistentClient(path=str(db_path))
+
+
+def get_collection(client: chromadb.PersistentClient = None):
+    """Retrieve or create the document collection configured with L2 distance."""
+    if client is None:
+        client = get_chroma_client()
+    # Using L2 distance to maintain compatibility with our semantic threshold settings
+    return client.get_or_create_collection(
+        name=settings.CHROMA_COLLECTION_NAME,
+        metadata={"hnsw:space": "l2"}
+    )
+
+
+def add_document_chunks(
+    user_id: int,
+    document_id: int,
+    filename: str,
+    chunks: List[Dict[str, Any]]
+) -> int:
     """
-    Embed all chunks, build a FAISS IndexFlatL2, and persist index + metadata.
-    Args:
-        chunks: List of dicts with keys 'text', 'source', 'chunk_id'.
-        index_path: Path to write the FAISS index.
-        chunks_path: Path to write the chunks pickle metadata.
+    Generate embeddings for document chunks and index them in ChromaDB.
+    Ensures user-level metadata filters are attached for multi-tenant isolation.
     """
     if not chunks:
-        logger.warning("No chunks provided to build and save.")
-        return
+        logger.warning(f"No chunks to index for document {document_id} ({filename})")
+        return 0
 
-    logger.info(
-        f"Embedding {len(chunks)} chunks with model '{settings.EMBEDDING_MODEL_NAME}'..."
+    logger.info(f"Indexing {len(chunks)} chunks for doc_id={document_id} user_id={user_id}...")
+    model = get_embedding_model()
+    
+    texts = [chunk["text"] for chunk in chunks]
+    embeddings = model.encode(texts, show_progress_bar=False, convert_to_numpy=True).tolist()
+
+    ids = []
+    metadatas = []
+    documents = []
+
+    for idx, chunk in enumerate(chunks):
+        chunk_text = chunk["text"]
+        page_ref = str(chunk["page"])
+        
+        # Globally unique vector identifier
+        chunk_uuid = f"usr_{user_id}_doc_{document_id}_chunk_{idx}"
+        ids.append(chunk_uuid)
+        
+        # Attach strict isolation metadata fields
+        metadatas.append({
+            "user_id": user_id,
+            "document_id": document_id,
+            "source": filename,
+            "page": page_ref
+        })
+        documents.append(chunk_text)
+
+    client = get_chroma_client()
+    collection = get_collection(client)
+
+    # Perform batch upsert
+    collection.add(
+        ids=ids,
+        embeddings=embeddings,
+        metadatas=metadatas,
+        documents=documents
     )
-    try:
-        model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
-        texts = [c["text"] for c in chunks]
-
-        embeddings = get_embeddings(texts, model)
-
-        dim = embeddings.shape[1]
-        logger.info(f"Creating FAISS index FlatL2 with dimension size: {dim}...")
-        index = faiss.IndexFlatL2(dim)
-        index.add(embeddings)
-
-        # Ensure parent directories exist
-        index_path.parent.mkdir(parents=True, exist_ok=True)
-        chunks_path.parent.mkdir(parents=True, exist_ok=True)
-
-        faiss.write_index(index, str(index_path))
-        with open(chunks_path, "wb") as f:
-            pickle.dump(chunks, f)
-
-        logger.info(f"Saved FAISS index successfully -> {index_path}")
-        logger.info(f"Saved chunk metadata successfully -> {chunks_path}")
-    except Exception as exc:
-        logger.error(f"Failed to build or save FAISS store: {exc}", exc_info=True)
-        raise
+    logger.info(f"ChromaDB indexing completed: {len(chunks)} vectors added.")
+    return len(chunks)
 
 
-def load_store(
-    index_path: Path = settings.INDEX_PATH,
-    chunks_path: Path = settings.CHUNKS_PATH,
-):
+def delete_document_chunks(document_id: int) -> None:
     """
-    Load the persisted FAISS index and chunk metadata from disk.
-    Returns:
-        (index, chunks, model)
-    Raises:
-        FileNotFoundError if the index has not been built yet.
+    Evict all vector embeddings associated with a deleted document.
     """
-    if not index_path.exists() or not chunks_path.exists():
-        msg = (
-            f"FAISS files not found at index_path={index_path} or chunks_path={chunks_path}. "
-            "Please run the indexing module first to build it."
-        )
-        logger.error(msg)
-        raise FileNotFoundError(msg)
-
+    logger.info(f"Evicting all ChromaDB vectors for document_id={document_id}...")
     try:
-        logger.info(f"Loading FAISS index from {index_path}...")
-        index = faiss.read_index(str(index_path))
-
-        logger.info(f"Loading chunk metadata from {chunks_path}...")
-        with open(chunks_path, "rb") as f:
-            chunks = pickle.load(f)
-
-        logger.info(
-            f"Initializing sentence transformer: {settings.EMBEDDING_MODEL_NAME}..."
-        )
-        model = SentenceTransformer(settings.EMBEDDING_MODEL_NAME)
-
-        return index, chunks, model
-    except Exception as exc:
-        logger.error(f"Failed to load FAISS index / store: {exc}", exc_info=True)
-        raise
-
-
-if __name__ == "__main__":
-    from src.utils.logger import setup_logging
-    from src.vector_store.ingest import ingest
-
-    setup_logging()
-    logger.info("Running local FAISS build and save...")
-    try:
-        chunks = ingest()
-        build_and_save(chunks)
-        logger.info("Local FAISS build completed successfully.")
+        client = get_chroma_client()
+        collection = get_collection(client)
+        
+        # Query matching document_id in metadata
+        collection.delete(where={"document_id": document_id})
+        logger.info(f"Successfully evicted vector embeddings for document_id={document_id}")
     except Exception as e:
-        logger.error(f"Build failed: {e}")
+        logger.error(f"Failed to delete ChromaDB vectors for document_id={document_id}: {e}", exc_info=True)
+        raise
+
+
+def load_store(index_path=None, chunks_path=None):
+    """Legacy helper to load FAISS index from disk, used strictly by testing suites."""
+    import faiss
+    import pickle
+    
+    idx_p = index_path or ROOT_DIR / "faiss_index.bin"
+    chk_p = chunks_path or ROOT_DIR / "chunks.pkl"
+    
+    logger.info(f"Retrieving legacy FAISS index from {idx_p}...")
+    index = faiss.read_index(str(idx_p))
+    
+    with open(chk_p, "rb") as f:
+        chunks = pickle.load(f)
+        
+    model = get_embedding_model()
+    return index, chunks, model
