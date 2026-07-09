@@ -43,3 +43,8 @@ htmlcov/
 
 # Distribution
 *.spec
+
+# Local Databases
+local_test.db
+chroma_db/
+
