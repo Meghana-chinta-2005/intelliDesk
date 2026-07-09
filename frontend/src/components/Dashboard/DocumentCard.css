@@ -1,0 +1,103 @@
+.doc-card {
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.doc-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.doc-card-icon.pdf {
+  background-color: #fee2e2;
+  color: #ef4444;
+}
+
+.doc-card-icon.doc {
+  background-color: #e0f2fe;
+  color: #3b82f6;
+}
+
+.doc-card-icon.xls {
+  background-color: #dcfce7;
+  color: #22c55e;
+}
+
+.doc-card-title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.doc-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.meta-dot {
+  width: 3px;
+  height: 3px;
+  background-color: var(--border-color);
+  border-radius: 50%;
+}
+
+.doc-card-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background-color: #f3f4f6;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-main);
+  transition: background-color 0.2s;
+}
+
+.action-btn:hover {
+  background-color: #e5e7eb;
+}
+
+.chat-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px;
+  background-color: #f5f3ff;
+  color: var(--primary-color);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  transition: background-color 0.2s;
+}
+
+.chat-btn:hover {
+  background-color: #ede9fe;
+}

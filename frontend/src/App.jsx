@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./App.css";
+import Login from "./components/Login/Login";
+import Sidebar from "./components/Layout/Sidebar";
+import Topbar from "./components/Layout/Topbar";
+import DocumentLibrary from "./components/Dashboard/DocumentLibrary";
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -399,146 +403,47 @@ export default function App() {
   // Not logged in view
   if (!token || !user) {
     return (
-      <div className="auth-overlay">
-        <div className="auth-blur-bg"></div>
-        <div className="auth-card glass-panel">
-          <h1 className="auth-title">IntelliDesk</h1>
-          <p className="auth-subtitle">Production RAG-Based AI Support Portal</p>
-          {authError && <div className="error-banner">⚠️ {authError}</div>}
-          <form className="auth-form" onSubmit={handleAuthSubmit}>
-            <div className="form-group">
-              <label className="form-label">Username</label>
-              <input
-                className="form-input"
-                type="text"
-                required
-                value={usernameInput}
-                onChange={(e) => setUsernameInput(e.target.value)}
-                placeholder="Enter username"
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Password</label>
-              <input
-                className="form-input"
-                type="password"
-                required
-                value={passwordInput}
-                onChange={(e) => setPasswordInput(e.target.value)}
-                placeholder="Enter password"
-              />
-            </div>
-            <button className="auth-btn" type="submit">
-              {isRegister ? "Register Credentials" : "Login Securely"}
-            </button>
-          </form>
-          <div className="auth-toggle">
-            {isRegister ? "Already have an account?" : "Need a workspace account?"}
-            <span className="auth-toggle-link" onClick={() => { setIsRegister(!isRegister); setAuthError(""); }}>
-              {isRegister ? "Login here" : "Register here"}
-            </span>
-          </div>
-        </div>
-      </div>
+      <Login 
+        isRegister={isRegister}
+        setIsRegister={setIsRegister}
+        authError={authError}
+        setAuthError={setAuthError}
+        usernameInput={usernameInput}
+        setUsernameInput={setUsernameInput}
+        passwordInput={passwordInput}
+        setPasswordInput={setPasswordInput}
+        handleAuthSubmit={handleAuthSubmit}
+      />
     );
   }
 
   // Logged in main workspace
   return (
     <div className="app-container">
-      {/* 1. Sidebar Nav */}
-      <aside className="sidebar">
-        <div className="sidebar-header">
-          <div className="logo-icon">🚀</div>
-          <h2 className="sidebar-title">IntelliDesk</h2>
-        </div>
-
-        {activeTab === "chat" && (
-          <button className="new-chat-btn" onClick={handleNewChat}>
-            ➕ New Chat Session
-          </button>
-        )}
-
-        <div className="conv-list">
-          {activeTab === "chat" ? (
-            conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`conv-item glass-card ${activeConvId === conv.id ? "active" : ""}`}
-                onClick={() => setActiveConvId(conv.id)}
-              >
-                <span className="conv-title">💬 {conv.title}</span>
-                <button
-                  className="conv-delete-btn"
-                  onClick={(e) => handleDeleteConversation(e, conv.id)}
-                  title="Delete Conversation"
-                >
-                  🗑️
-                </button>
-              </div>
-            ))
-          ) : (
-            <div style={{ padding: "20px", color: "var(--text-muted)", fontSize: "0.85rem" }}>
-              Metrics are automatically aggregated from logs tables.
-            </div>
-          )}
-        </div>
-
-        <div className="sidebar-footer">
-          <div className="user-profile">
-            <div className="user-avatar">{user.username[0].toUpperCase()}</div>
-            <div className="user-info">
-              <div className="user-name">{user.username}</div>
-              <div className="user-role">{user.is_admin ? "Administrator" : "Support Agent"}</div>
-            </div>
-            <button
-              onClick={handleLogout}
-              style={{ background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
-              title="Logout"
-            >
-              🚪
-            </button>
-          </div>
-
-          <button
-            className={`sidebar-nav-btn ${activeTab === "chat" ? "active" : ""}`}
-            onClick={() => setActiveTab("chat")}
-          >
-            💬 RAG Chat Assistant
-          </button>
-
-          {user.is_admin && (
-            <button
-              className={`sidebar-nav-btn ${activeTab === "admin" ? "active" : ""}`}
-              onClick={() => setActiveTab("admin")}
-            >
-              📊 System Admin Board
-            </button>
-          )}
-        </div>
-      </aside>
-
-      {/* 2. Main content view */}
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+      
       <main className="main-view">
-        <header className="main-header">
-          <h1 className="header-title">
-            {activeTab === "chat" ? "AI Semantic Search & grounded Chat" : "Enterprise System Monitor"}
-          </h1>
-          <div className="header-actions">
-            <span style={{ fontSize: "0.85rem", color: "var(--text-muted)" }}>
-              API Status: <b style={{ color: "var(--color-success)" }}>Connected</b>
-            </span>
-          </div>
-        </header>
-
-        {activeTab === "chat" ? (
+        <Topbar user={user} />
+        
+        {activeTab === "documents" && (
+          <DocumentLibrary 
+            documents={documents}
+            isUploading={isUploading}
+            uploadError={uploadError}
+            handleFileUpload={handleFileUpload}
+            handleSummarizeDocument={handleSummarizeDocument}
+            isSummarizing={isSummarizing}
+            uploadFilename={null}
+          />
+        )}
+        
+        {activeTab === "chat" && (
           <div className="chat-container">
-            {/* Left Chat Window */}
             <div className="chat-messages-area">
               <div className="messages-list">
                 {activeMessages.length === 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "var(--font-heading)", color: "white", marginBottom: "8px" }}>Welcome to IntelliDesk</h2>
+                    <h2 style={{ fontFamily: "var(--font-heading)", color: "var(--primary-color)", marginBottom: "8px" }}>Welcome to IntelliDesk</h2>
                     <p style={{ maxWidth: "450px", fontSize: "0.9rem" }}>
                       Upload corporate documentation in the panel to your right, then type questions below. The assistant will answer using only verified document context.
                     </p>
@@ -598,70 +503,18 @@ export default function App() {
                 </div>
               </form>
             </div>
-
-            {/* Right Document Panel */}
-            <aside className="doc-panel">
-              <h3 className="panel-section-title">📁 Document Library</h3>
-              <div className="upload-area">
-                <label className="dropzone">
-                  <input
-                    type="file"
-                    accept=".pdf,.docx,.xlsx,.txt"
-                    onChange={handleFileUpload}
-                    style={{ display: "none" }}
-                    disabled={isUploading}
-                  />
-                  <span className="upload-icon">📤</span>
-                  <span className="upload-text">
-                    {isUploading ? "Uploading..." : "Upload PDF, DOCX, XLSX, TXT"}
-                  </span>
-                  <span className="upload-constraints">Max size 10MB</span>
-                </label>
-                {uploadError && (
-                  <div className="error-banner" style={{ fontSize: "0.75rem", padding: "8px", marginTop: "10px" }}>
-                    {uploadError}
-                  </div>
-                )}
-              </div>
-
-              <div className="doc-list-scroll">
-                {isSummarizing && (
-                  <div className="glass-card" style={{ padding: "14px", display: "flex", alignItems: "center", gap: "10px", fontSize: "0.8rem", color: "var(--accent-secondary)" }}>
-                    <div className="spinner"></div> Summarizing document...
-                  </div>
-                )}
-                
-                {documents.length === 0 ? (
-                  <div style={{ padding: "20px", color: "var(--text-muted)", fontSize: "0.85rem", textAlign: "center" }}>
-                    No documents uploaded yet.
-                  </div>
-                ) : (
-                  documents.map((doc) => (
-                    <div key={doc.id} className="doc-card glass-card">
-                      <div className="doc-card-header">
-                        <span className="doc-name">{doc.filename}</span>
-                      </div>
-                      <div className="doc-meta-row">
-                        <span>💾 {(doc.file_size / (1024 * 1024)).toFixed(2)} MB</span>
-                        <span>🧩 {doc.chunk_count} Chunks</span>
-                      </div>
-                      <div className="doc-card-actions">
-                        <button className="doc-btn" onClick={() => handleSummarizeDocument(doc.id)} disabled={isSummarizing}>
-                          📝 Summarize
-                        </button>
-                        <button className="doc-btn danger" onClick={() => handleDeleteDocument(doc.id)}>
-                          Evict
-                        </button>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </aside>
           </div>
-        ) : (
-          /* Admin dashboard view */
-          <div className="admin-view">
+        )}
+
+        {activeTab === "dashboard" && (
+          <div style={{ padding: "32px", maxWidth: "1200px", margin: "0 auto" }}>
+            <h2 style={{fontSize: "1.8rem", marginBottom: "8px"}}>Dashboard</h2>
+            <p style={{color: "var(--text-muted)"}}>Welcome to your FluidMind AI Dashboard.</p>
+          </div>
+        )}
+
+        {activeTab === "admin" && (
+           <div className="admin-view">
             {adminError && <div className="error-banner">⚠️ {adminError}</div>}
             {isAdminLoading ? (
               <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "200px" }}>
@@ -687,9 +540,8 @@ export default function App() {
                     <span className="stat-value">{adminStats.avg_response_time.toFixed(2)}s</span>
                   </div>
                 </div>
-
                 <div className="logs-container glass-panel">
-                  <div className="logs-header">📋 Recent Activity Logs (PostgreSQL Audit trail)</div>
+                  <div className="logs-header">📋 Recent Activity Logs</div>
                   <div className="logs-list">
                     {adminStats.recent_logs.map((log) => (
                       <div key={log.id} className="log-entry">
@@ -712,7 +564,7 @@ export default function App() {
       {/* 3. Summarization modal view */}
       {summarizedDoc && (
         <div className="modal-overlay" onClick={() => setSummarizedDoc(null)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSummarizedDoc(null)}>✖</button>
             <h2 className="summary-title">📝 {summarizedDoc.filename} Summary</h2>
             <div className="summary-text" style={{ whiteSpace: "pre-wrap" }}>{summarizedDoc.text}</div>
@@ -723,9 +575,9 @@ export default function App() {
       {/* 4. Citation detail modal view */}
       {selectedCitation && (
         <div className="modal-overlay" onClick={() => setSelectedCitation(null)}>
-          <div className="modal-content glass-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close-btn" onClick={() => setSelectedCitation(null)}>✖</button>
-            <h2 className="summary-title" style={{ color: "var(--accent-secondary)" }}>📄 Source Document Citation</h2>
+            <h2 className="summary-title">📄 Source Document Citation</h2>
             <div className="summary-block">
               <span className="summary-section-label">Source File</span>
               <p className="summary-text">{selectedCitation.filename}</p>
@@ -735,7 +587,7 @@ export default function App() {
               <p className="summary-text">Page / Sheet Reference: <b>{selectedCitation.page}</b></p>
             </div>
             <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-              <button className="auth-btn" onClick={() => setSelectedCitation(null)} style={{ flex: 1 }}>
+              <button onClick={() => setSelectedCitation(null)} style={{ flex: 1, padding: '10px', background: 'var(--primary-color)', color: 'white', borderRadius: '8px' }}>
                 Dismiss Reference
               </button>
             </div>
