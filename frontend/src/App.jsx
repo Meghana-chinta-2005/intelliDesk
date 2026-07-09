@@ -45,6 +45,7 @@ export default function App() {
 
   // Scroll ref
   const messageEndRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   // -------------------------------------------------------------
   // 1. Authentication Hooks
@@ -443,7 +444,7 @@ export default function App() {
               <div className="messages-list">
                 {activeMessages.length === 0 ? (
                   <div style={{ display: "flex", flexDirection: "column", height: "100%", alignItems: "center", justifyContent: "center", color: "var(--text-muted)", textAlign: "center" }}>
-                    <h2 style={{ fontFamily: "var(--font-heading)", color: "var(--primary-color)", marginBottom: "8px" }}>Welcome to IntelliDesk</h2>
+                    <h2 style={{ fontFamily: "var(--font-heading)", color: "var(--text-main)", marginBottom: "8px" }}>Welcome to IntelliDesk</h2>
                     <p style={{ maxWidth: "450px", fontSize: "0.9rem" }}>
                       Upload corporate documentation in the panel to your right, then type questions below. The assistant will answer using only verified document context.
                     </p>
@@ -454,9 +455,9 @@ export default function App() {
                       key={msg.id}
                       className={`message-bubble-container ${msg.sender === "user" ? "user" : "assistant"}`}
                     >
-                      <span className="message-sender">
-                        {msg.sender === "user" ? "You" : "IntelliDesk AI"}
-                      </span>
+                      {msg.sender === "user" ? null : (
+                        <span className="message-sender">IntelliDesk AI</span>
+                      )}
                       <div className="message-bubble">{msg.text}</div>
                       {msg.sources && msg.sources.length > 0 && (
                         <div className="message-sources">
@@ -489,17 +490,42 @@ export default function App() {
               {chatError && <div className="error-banner" style={{ margin: "0 28px" }}>⚠️ {chatError}</div>}
 
               <form className="chat-input-area" onSubmit={handleAskQuestion}>
-                <div className="chat-input-row">
+                <div className="chat-input-wrapper">
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: 'none' }} 
+                    onChange={handleFileUpload} 
+                  />
+                  <button 
+                    type="button" 
+                    className="chat-icon-btn plus-btn" 
+                    title="Add File"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                  </button>
                   <input
                     className="chat-textbox"
                     value={questionInput}
                     onChange={(e) => setQuestionInput(e.target.value)}
-                    placeholder="Ask a question grounded in knowledge documents..."
+                    placeholder="Ask anything"
                     disabled={isAsking}
                   />
-                  <button className="chat-send-btn" type="submit" disabled={isAsking || !questionInput.trim()}>
-                    ➤
-                  </button>
+                  <div className="chat-input-actions">
+                    <button type="button" className="chat-icon-btn voice-btn" title="Voice Input">
+                       <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="22"></line></svg>
+                    </button>
+                    {questionInput.trim() ? (
+                       <button className="chat-icon-btn generate-btn" type="submit" disabled={isAsking} title="Send Message">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+                      </button>
+                    ) : (
+                      <button type="button" className="chat-icon-btn generate-btn" title="Generate">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </form>
             </div>
